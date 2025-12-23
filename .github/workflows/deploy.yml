@@ -1,0 +1,66 @@
+name: Deploy to Reg.ru via FTP
+
+on:
+  push:
+    branches:
+      - main  # yoki master - qaysi branch ishlatayotganingizga qarab
+  workflow_dispatch:  # Manual ishga tushirish uchun
+
+jobs:
+  deploy:
+    name: FTP Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Faqat oxirgi 2 ta commit (o'zgarishlar uchun)
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+
+      - name: FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: 31.31.197.29
+          username: u3116705_abutolib
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          protocol: ftp
+          local-dir: ./
+          server-dir: /
+
+          # Passive mode (reg.ru uchun kerak)
+          passive: true
+
+          # O'zgargan fayllarni yuklash
+          dangerous-clean-slate: false
+
+          # Exclude qilinadigan fayllar
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/vendor/**
+            **/.env
+            **/.DS_Store
+            **/storage/logs/**
+            **/storage/framework/cache/**
+            **/storage/framework/sessions/**
+            **/storage/framework/views/**
+
+          # Timeout (katta loyihalar uchun)
+          timeout: 600000
+
+      - name: Display deployment status
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Changed files:"
+          echo "${{ steps.changed-files.outputs.all_changed_files }}"
+
+      - name: Deployment failed
+        if: failure()
+        run: echo "❌ Deployment failed. Check logs above."
